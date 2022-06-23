@@ -21,7 +21,7 @@ func main() {
 	ih := handlers.NewIngredient(l)
 
 	smux := http.NewServeMux()
-	smux.Handle("/ingredients", ih)
+	smux.Handle("/ingredients/", ih)
 	fmt.Println("Server is listening on :6660")
 
 	s := &http.Server{
