@@ -3,9 +3,9 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/data"
 )
 
@@ -17,67 +17,8 @@ func NewIngredient(l *log.Logger) *Ingredient {
 	return &Ingredient{l}
 }
 
-func (i *Ingredient) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		rr := regexp.MustCompile(`/([0-9]+)`)
-		g := rr.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) > 0 {
-			if len(g[0]) != 2 {
-				http.Error(rw, "Invalid URL", http.StatusBadRequest)
-				return
-			}
-			idString := g[0][1]
-			id, _ := strconv.Atoi(idString)
-			ingredient, _, _ := data.FindIngredient(id)
-			ingredient.ToJSON(rw)
-			return
-		}
-		i.getIngredients(rw, r)
-		return
-	}
-	if r.Method == http.MethodPost {
-		i.addIngredient(rw, r)
-		return
-	}
-	if r.Method == http.MethodPut {
-		rr := regexp.MustCompile(`/([0-9]+)`)
-		g := rr.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) != 1 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		if len(g[0]) != 2 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		idString := g[0][1]
-		id, _ := strconv.Atoi(idString)
-		i.l.Printf("%d", id)
-		i.updateIngredient(id, rw, r)
-		return
-	}
-	if r.Method == http.MethodDelete {
-		rr := regexp.MustCompile(`/([0-9]+)`)
-		g := rr.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) != 1 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		if len(g[0]) != 2 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		idString := g[0][1]
-		id, _ := strconv.Atoi(idString)
-		i.l.Printf("%d", id)
-		i.deleteIngredient(id, rw, r)
-		return
-	}
-	rw.WriteHeader(http.StatusMethodNotAllowed)
-}
-
 //get
-func (i *Ingredient) getIngredients(rw http.ResponseWriter, r *http.Request) {
+func (i *Ingredient) GetIngredients(rw http.ResponseWriter, r *http.Request) {
 	li := data.GetIngredients()
 	err := li.ToJSON(rw)
 	if err != nil {
@@ -85,8 +26,21 @@ func (i *Ingredient) getIngredients(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (i *Ingredient) GetIngredient(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(rw, "unable to do operation", http.StatusBadRequest)
+	}
+	ingredient, _, _ := data.FindIngredient(id)
+	err = ingredient.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "unable to do operation", http.StatusBadRequest)
+	}
+}
+
 //post
-func (i *Ingredient) addIngredient(rw http.ResponseWriter, r *http.Request) {
+func (i *Ingredient) AddIngredient(rw http.ResponseWriter, r *http.Request) {
 	ingredient := &data.Ingredient{}
 	err := ingredient.FromJSON(r.Body)
 	if err != nil {
@@ -96,21 +50,34 @@ func (i *Ingredient) addIngredient(rw http.ResponseWriter, r *http.Request) {
 }
 
 //put
-func (i *Ingredient) updateIngredient(id int, rw http.ResponseWriter, r *http.Request) {
+func (i *Ingredient) UpdateIngredient(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+
+	if err != nil {
+		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+	}
+
 	ingredient := &data.Ingredient{}
-	err := ingredient.FromJSON(r.Body)
+	err = ingredient.FromJSON(r.Body)
+
 	if err != nil {
 		http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
 	}
 	err = data.UpdateIngredient(id, ingredient)
 	if err != nil {
-		data.AddIngredient(ingredient)
+		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
 	}
 }
 
 //delete
-func (i *Ingredient) deleteIngredient(id int, rw http.ResponseWriter, r *http.Request) {
-	err := data.RemoveIngredient(id)
+func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+	}
+	err = data.RemoveIngredient(id)
 	if err != nil {
 		http.Error(rw, "unabable to do this operation", http.StatusBadRequest)
 	}
