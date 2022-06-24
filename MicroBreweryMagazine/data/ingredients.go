@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Ingredient struct {
 	ID          int       `json:"id"`
-	Name        string    `json:"name"`
+	Name        string    `json:"name" validate:"required"`
 	Category    *Category `json:"category"`
-	Quantity    float64   `json:"quantity"`
+	Quantity    float64   `json:"quantity" validate:"required"`
+	Unit        string    `json:"unit" validate:"required"`
 	Description string    `json:"desc"`
 	CreateOn    string    `json:"-"`
 	UpdateOn    string    `json:"-"`
@@ -20,6 +23,11 @@ type Ingredient struct {
 type Ingredients []*Ingredient
 
 var NotFoundError = fmt.Errorf("NOT FOUND RESOURCE")
+
+func (i *Ingredient) Validate() error {
+	v := validator.New()
+	return v.Struct(i)
+}
 
 func (i *Ingredient) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)
@@ -46,6 +54,7 @@ func GetIngredients() Ingredients {
 
 func AddIngredient(i *Ingredient) {
 	i.ID = getNextID()
+	i.CreateOn = time.Now().UTC().String()
 	ingredientList = append(ingredientList, i)
 }
 
@@ -56,6 +65,7 @@ func UpdateIngredient(id int, i *Ingredient) error {
 	}
 
 	i.ID = id
+	i.UpdateOn = time.Now().String()
 	ingredientList[index] = i
 	return nil
 }
