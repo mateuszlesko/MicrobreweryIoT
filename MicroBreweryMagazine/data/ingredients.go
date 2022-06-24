@@ -35,6 +35,11 @@ func (i *Ingredient) FromJSON(r io.Reader) error {
 	return d.Decode(i) // pass reference to myself, map json to struct
 }
 
+func (i *Ingredients) FromJSON(r io.Reader) error {
+	d := json.NewDecoder(r)
+	return d.Decode(i)
+}
+
 func GetIngredients() Ingredients {
 	return ingredientList
 }

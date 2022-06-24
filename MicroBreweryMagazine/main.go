@@ -31,8 +31,10 @@ func main() {
 	getRouter.HandleFunc("/ingredients/{id:[0-9]+}", ih.GetIngredient)
 
 	postRouter.HandleFunc("/ingredients/", ih.AddIngredient)
+	postRouter.Use(ih.MiddlewareIngredientValidation)
 
 	putRouter.HandleFunc("/ingredients/{id:[0-9]+}", ih.UpdateIngredient)
+	putRouter.Use(ih.MiddlewareIngredientValidation)
 
 	deleteRouter.HandleFunc("/ingredients/{id:[0-9]+}", ih.DeleteIngredient)
 	fmt.Println("Server is listening on :6660")

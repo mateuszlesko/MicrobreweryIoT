@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -8,6 +9,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/data"
 )
+
+type KeyIngredient struct{}
 
 type Ingredient struct {
 	l *log.Logger
@@ -41,12 +44,8 @@ func (i *Ingredient) GetIngredient(rw http.ResponseWriter, r *http.Request) {
 
 //post
 func (i *Ingredient) AddIngredient(rw http.ResponseWriter, r *http.Request) {
-	ingredient := &data.Ingredient{}
-	err := ingredient.FromJSON(r.Body)
-	if err != nil {
-		http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
-	}
-	data.AddIngredient(ingredient)
+	ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
+	data.AddIngredient(&ingredient)
 }
 
 //put
@@ -58,13 +57,12 @@ func (i *Ingredient) UpdateIngredient(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
 	}
 
-	ingredient := &data.Ingredient{}
-	err = ingredient.FromJSON(r.Body)
+	ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
 
 	if err != nil {
 		http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
 	}
-	err = data.UpdateIngredient(id, ingredient)
+	err = data.UpdateIngredient(id, &ingredient)
 	if err != nil {
 		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
 	}
@@ -81,4 +79,22 @@ func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(rw, "unabable to do this operation", http.StatusBadRequest)
 	}
+}
+
+func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		ingredient := data.Ingredient{}
+		err := ingredient.FromJSON(r.Body)
+
+		if err != nil {
+			http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
+			return
+		}
+		//add ingredient to the context
+		ctx := context.WithValue(r.Context(), KeyIngredient{}, ingredient)
+		req := r.WithContext(ctx)
+
+		//calling the next handler or middleware in the chain
+		next.ServeHTTP(rw, req)
+	})
 }
