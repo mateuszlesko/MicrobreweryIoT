@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -83,6 +84,7 @@ func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
 
 func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+
 		ingredient := data.Ingredient{}
 		err := ingredient.FromJSON(r.Body)
 
@@ -90,6 +92,15 @@ func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Hand
 			http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
 			return
 		}
+
+		//validate ingredient data
+		err_v := ingredient.Validate()
+
+		if err_v != nil {
+			http.Error(rw, "Error validating ingredient", http.StatusBadRequest)
+			return
+		}
+		fmt.Println("MIDDLEWARE")
 		//add ingredient to the context
 		ctx := context.WithValue(r.Context(), KeyIngredient{}, ingredient)
 		req := r.WithContext(ctx)
