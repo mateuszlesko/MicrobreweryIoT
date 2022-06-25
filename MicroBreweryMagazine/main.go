@@ -12,12 +12,14 @@ import (
 	"syscall"
 	"time"
 
+	gorilla_hander "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/handlers"
 )
 
 func main() {
 
+	ch := gorilla_hander.CORS(gorilla_hander.AllowedOrigins([]string{"http://localhost:3000"}))
 	l := log.New(os.Stdout, "MicroBreweryMagazineService", log.LstdFlags)
 	ih := handlers.NewIngredient(l)
 
@@ -41,7 +43,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              ":6660",
-		Handler:           smux,
+		Handler:           ch(smux),
 		TLSConfig:         &tls.Config{},
 		ReadTimeout:       2 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
