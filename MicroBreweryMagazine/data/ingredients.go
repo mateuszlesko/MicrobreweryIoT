@@ -14,7 +14,7 @@ type Ingredient struct {
 	Name        string    `json:"name" validate:"required"`
 	Category    *Category `json:"category"`
 	Quantity    float64   `json:"quantity" validate:"required"`
-	Unit        string    `json:"unit" validate:"required"`
+	Unit        string    `json:"unit" validate:"required,unit"`
 	Description string    `json:"desc"`
 	CreateOn    string    `json:"-"`
 	UpdateOn    string    `json:"-"`
@@ -26,7 +26,21 @@ var NotFoundError = fmt.Errorf("NOT FOUND RESOURCE")
 
 func (i *Ingredient) Validate() error {
 	v := validator.New()
+	v.RegisterValidation("unit", validateUnit)
 	return v.Struct(i)
+}
+
+func validateUnit(fl validator.FieldLevel) bool {
+	switch fl.Field().String() {
+	case
+		"mg",
+		"g",
+		"dag",
+		"kg",
+		"t":
+		return true
+	}
+	return false
 }
 
 func (i *Ingredient) ToJSON(w io.Writer) error {
