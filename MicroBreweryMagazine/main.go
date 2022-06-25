@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/handlers"
 )
 
@@ -20,8 +21,22 @@ func main() {
 	l := log.New(os.Stdout, "MicroBreweryMagazineService", log.LstdFlags)
 	ih := handlers.NewIngredient(l)
 
-	smux := http.NewServeMux()
-	smux.Handle("/ingredients/", ih)
+	smux := mux.NewRouter()
+	getRouter := smux.Methods(http.MethodGet).Subrouter()
+	putRouter := smux.Methods(http.MethodPut).Subrouter()
+	postRouter := smux.Methods(http.MethodPost).Subrouter()
+	deleteRouter := smux.Methods(http.MethodDelete).Subrouter()
+
+	getRouter.HandleFunc("/ingredients/", ih.GetIngredients)
+	getRouter.HandleFunc("/ingredients/{id:[0-9]+}", ih.GetIngredient)
+
+	postRouter.HandleFunc("/ingredients/", ih.AddIngredient)
+	postRouter.Use(ih.MiddlewareIngredientValidation)
+
+	putRouter.HandleFunc("/ingredients/{id:[0-9]+}", ih.UpdateIngredient)
+	putRouter.Use(ih.MiddlewareIngredientValidation)
+
+	deleteRouter.HandleFunc("/ingredients/{id:[0-9]+}", ih.DeleteIngredient)
 	fmt.Println("Server is listening on :6660")
 
 	s := &http.Server{

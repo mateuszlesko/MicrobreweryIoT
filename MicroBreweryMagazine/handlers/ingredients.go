@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/data"
 )
+
+type KeyIngredient struct{}
 
 type Ingredient struct {
 	l *log.Logger
@@ -17,67 +21,8 @@ func NewIngredient(l *log.Logger) *Ingredient {
 	return &Ingredient{l}
 }
 
-func (i *Ingredient) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		rr := regexp.MustCompile(`/([0-9]+)`)
-		g := rr.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) > 0 {
-			if len(g[0]) != 2 {
-				http.Error(rw, "Invalid URL", http.StatusBadRequest)
-				return
-			}
-			idString := g[0][1]
-			id, _ := strconv.Atoi(idString)
-			ingredient, _, _ := data.FindIngredient(id)
-			ingredient.ToJSON(rw)
-			return
-		}
-		i.getIngredients(rw, r)
-		return
-	}
-	if r.Method == http.MethodPost {
-		i.addIngredient(rw, r)
-		return
-	}
-	if r.Method == http.MethodPut {
-		rr := regexp.MustCompile(`/([0-9]+)`)
-		g := rr.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) != 1 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		if len(g[0]) != 2 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		idString := g[0][1]
-		id, _ := strconv.Atoi(idString)
-		i.l.Printf("%d", id)
-		i.updateIngredient(id, rw, r)
-		return
-	}
-	if r.Method == http.MethodDelete {
-		rr := regexp.MustCompile(`/([0-9]+)`)
-		g := rr.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) != 1 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		if len(g[0]) != 2 {
-			http.Error(rw, "Invalid URL", http.StatusBadRequest)
-			return
-		}
-		idString := g[0][1]
-		id, _ := strconv.Atoi(idString)
-		i.l.Printf("%d", id)
-		i.deleteIngredient(id, rw, r)
-		return
-	}
-	rw.WriteHeader(http.StatusMethodNotAllowed)
-}
-
 //get
-func (i *Ingredient) getIngredients(rw http.ResponseWriter, r *http.Request) {
+func (i *Ingredient) GetIngredients(rw http.ResponseWriter, r *http.Request) {
 	li := data.GetIngredients()
 	err := li.ToJSON(rw)
 	if err != nil {
@@ -85,33 +30,82 @@ func (i *Ingredient) getIngredients(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//post
-func (i *Ingredient) addIngredient(rw http.ResponseWriter, r *http.Request) {
-	ingredient := &data.Ingredient{}
-	err := ingredient.FromJSON(r.Body)
+func (i *Ingredient) GetIngredient(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
+		http.Error(rw, "unable to do operation", http.StatusBadRequest)
 	}
-	data.AddIngredient(ingredient)
+	ingredient, _, _ := data.FindIngredient(id)
+	err = ingredient.ToJSON(rw)
+	if err != nil {
+		http.Error(rw, "unable to do operation", http.StatusBadRequest)
+	}
+}
+
+//post
+func (i *Ingredient) AddIngredient(rw http.ResponseWriter, r *http.Request) {
+	ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
+	data.AddIngredient(&ingredient)
 }
 
 //put
-func (i *Ingredient) updateIngredient(id int, rw http.ResponseWriter, r *http.Request) {
-	ingredient := &data.Ingredient{}
-	err := ingredient.FromJSON(r.Body)
+func (i *Ingredient) UpdateIngredient(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+
+	if err != nil {
+		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+	}
+
+	ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
+
 	if err != nil {
 		http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
 	}
-	err = data.UpdateIngredient(id, ingredient)
+	err = data.UpdateIngredient(id, &ingredient)
 	if err != nil {
-		data.AddIngredient(ingredient)
+		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
 	}
 }
 
 //delete
-func (i *Ingredient) deleteIngredient(id int, rw http.ResponseWriter, r *http.Request) {
-	err := data.RemoveIngredient(id)
+func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+	}
+	err = data.RemoveIngredient(id)
 	if err != nil {
 		http.Error(rw, "unabable to do this operation", http.StatusBadRequest)
 	}
+}
+
+func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+
+		ingredient := data.Ingredient{}
+		err := ingredient.FromJSON(r.Body)
+
+		if err != nil {
+			http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
+			return
+		}
+
+		//validate ingredient data
+		err_v := ingredient.Validate()
+
+		if err_v != nil {
+			http.Error(rw, "Error validating ingredient", http.StatusBadRequest)
+			return
+		}
+		fmt.Println("MIDDLEWARE")
+		//add ingredient to the context
+		ctx := context.WithValue(r.Context(), KeyIngredient{}, ingredient)
+		req := r.WithContext(ctx)
+
+		//calling the next handler or middleware in the chain
+		next.ServeHTTP(rw, req)
+	})
 }
