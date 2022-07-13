@@ -26,7 +26,7 @@ func (i *Ingredient) GetIngredients(rw http.ResponseWriter, r *http.Request) {
 	li := data.GetIngredients()
 	err := li.ToJSON(rw)
 	if err != nil {
-		http.Error(rw, "unable to encode json", http.StatusInternalServerError)
+		http.Error(rw, "unable to encode json", http.StatusBadRequest)
 	}
 }
 

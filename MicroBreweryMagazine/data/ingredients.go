@@ -112,17 +112,11 @@ func findIngredient(id int) (*Ingredient, int, error) {
 
 var ingredientList = []*Ingredient{
 	{
-		ID:   1,
-		Name: "Chmiel",
-		Category: &Category{
-			ID:   1,
-			Name: "Chmiele",
-			SubCategory: &Category{
-				ID:   2,
-				Name: "Chmiele jasne",
-			},
-		},
+		ID:          1,
+		Name:        "Chmiel",
+		Category:    &Category{Category_id: 1, Category_name: "Chmiele"},
 		Quantity:    100000.0,
+		Unit:        "",
 		Description: "Jasny chmiel",
 		CreateOn:    time.Now().UTC().String(),
 		UpdateOn:    time.Now().UTC().String(),
