@@ -59,7 +59,7 @@ func main() {
 
 	getCategory.HandleFunc("/categories/", cgh.GetCategories)
 	getCategory.HandleFunc("/category/{id:[0-9]+}", cgh.GetCategory)
-	postCategory.HandleFunc("/category/", cgh.InsertCategory)
+	postCategory.HandleFunc("/category/", cgh.PostCategory)
 	putCategory.HandleFunc("/category/{id:[0-9]+}", cgh.UpdateCategory)
 	deleteCategory.HandleFunc("/category/{id:[0-9]+}", cgh.DeleteCategory)
 	fmt.Println("Server is listening on :6660")

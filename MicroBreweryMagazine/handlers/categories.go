@@ -59,11 +59,6 @@ func SelectCategory(id int, dB *sql.DB) {
 	panic("unimplemented")
 }
 
-//post
-func (c *Category) InsertCategory(rw http.ResponseWriter, r *http.Request) {
-
-}
-
 //delete
 func (c *Category) DeleteCategory(rw http.ResponseWriter, r *http.Request) {
 
@@ -85,15 +80,32 @@ func (c *Category) UpdateCategory(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(rw, "not enable to decode json", http.StatusBadGateway)
 	}
-	// err, category = data.UpdateCategory()
-	// if err != nil {
-	// 	http.Error(rw, "unable to update", http.StatusUnprocessableEntity)
-	// }
+	err, _ = data.UpdateCategory(category)
+	if err != nil {
+		http.Error(rw, "unable to update", http.StatusUnprocessableEntity)
+	}
 	categoryBytes, err := json.Marshal(category)
 	if err != nil {
 		http.Error(rw, "unable to marshal", http.StatusUnprocessableEntity)
 	}
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(categoryBytes)
+}
 
+func (c Category) PostCategory(rw http.ResponseWriter, r *http.Request) {
+	var category data.Category
+	err := json.NewDecoder(r.Body).Decode(&category)
+	if err != nil {
+		http.Error(rw, "can not decode value from body", http.StatusBadRequest)
+	}
+	err, cat := data.InsertCategory(category.Category_name)
+	if err != nil {
+		http.Error(rw, "can not add row", http.StatusBadRequest)
+	}
+	categoryBytes, err := json.Marshal(cat)
+	if err != nil {
+		http.Error(rw, "unable to marshal", http.StatusUnprocessableEntity)
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(categoryBytes)
 }

@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/helpers"
@@ -79,10 +78,55 @@ func UpdateCategory(category Category) (error, *Category) {
 	if err != nil {
 		return err, nil
 	}
-	fmt.Printf("%s", category.Category_name)
-	if _, err := db.Exec(`Update categories set name=? where category_id=?;`, category.Category_name, category.Category_id); err != nil {
+	smt, err := db.Prepare(`update categories set category_name=$1 where category_id=$2`)
+	if err != nil {
 		return err, nil
 	}
-	db.Close()
+	if _, err := smt.Exec(category.Category_name, category.Category_id); err != nil {
+		return err, nil
+	}
+	defer smt.Close()
+	defer db.Close()
 	return nil, &category
+}
+
+func InsertCategory(name string) (error, *Category) {
+	err, db := helpers.OpenConnection()
+	if err != nil {
+		return err, nil
+	}
+	smt, err := db.Prepare(`insert into categories(category_name) values($1)`)
+	if err != nil {
+		return err, nil
+	}
+	effect, err := smt.Exec(name)
+	if err != nil {
+		return err, nil
+	}
+
+	lastId, err := effect.LastInsertId()
+	if err != nil {
+		return err, nil
+	}
+	defer smt.Close()
+	defer db.Close()
+	return SelectCategoryWhereID(int(lastId))
+}
+
+func DeleteCategory(id int) error {
+	err, db := helpers.OpenConnection()
+	if err != nil {
+		return err
+	}
+	smt, err := db.Prepare(`delete from categories where category_id=$1`)
+	if err != nil {
+		return err
+	}
+	if _, err := smt.Exec(id); err != nil {
+		return err
+	}
+	defer smt.Close()
+	defer db.Close()
+
+	return nil
 }
