@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,14 +12,13 @@ import (
 )
 
 type Category struct {
-	l   *log.Logger
-	sql *sql.DB
+	l *log.Logger
 }
 
 type KeyCategory struct{}
 
-func NewCategory(l *log.Logger, s *sql.DB) *Category {
-	return &Category{l, s}
+func NewCategory(l *log.Logger) *Category {
+	return &Category{l}
 }
 
 //get
@@ -38,6 +37,7 @@ func (c *Category) GetCategories(rw http.ResponseWriter, r *http.Request) {
 	rw.Write(categoriesBytes)
 }
 
+//get
 func (c *Category) GetCategory(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -57,10 +57,6 @@ func (c *Category) GetCategory(rw http.ResponseWriter, r *http.Request) {
 	}
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(categoryBytes)
-}
-
-func SelectCategory(id int, dB *sql.DB) {
-	panic("unimplemented")
 }
 
 //delete
@@ -86,7 +82,6 @@ func (c *Category) DeleteCategory(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Category) UpdateCategory(rw http.ResponseWriter, r *http.Request) {
-
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -124,16 +119,15 @@ func (c Category) PostCategory(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "can not decode value from body", http.StatusBadRequest)
 		return
 	}
-	err, cat := data.InsertCategory(category.Category_name)
+	err, res := data.InsertCategory(category.Category_name)
 	if err != nil {
 		http.Error(rw, "can not add row", http.StatusBadRequest)
 		return
 	}
-	categoryBytes, err := json.Marshal(cat)
 	if err != nil {
-		http.Error(rw, "unable to marshal", http.StatusUnprocessableEntity)
+		http.Error(rw, "unable to marshal", http.StatusBadRequest)
 		return
 	}
 	rw.Header().Set("Content-Type", "application/json")
-	rw.Write(categoryBytes)
+	rw.Write([]byte(fmt.Sprintf("%d", res)))
 }

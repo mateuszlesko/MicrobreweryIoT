@@ -90,27 +90,25 @@ func UpdateCategory(category Category) (error, *Category) {
 	return nil, &category
 }
 
-func InsertCategory(name string) (error, *Category) {
+func InsertCategory(name string) (error, int) {
 	err, db := helpers.OpenConnection()
 	if err != nil {
-		return err, nil
+		return err, -1
 	}
 	smt, err := db.Prepare(`insert into categories(category_name) values($1)`)
 	if err != nil {
-		return err, nil
+		return err, -1
 	}
-	effect, err := smt.Exec(name)
+	_, err = smt.Exec(name)
 	if err != nil {
-		return err, nil
+		return err, -1
 	}
-
-	lastId, err := effect.LastInsertId()
 	if err != nil {
-		return err, nil
+		return err, -1
 	}
 	defer smt.Close()
 	defer db.Close()
-	return SelectCategoryWhereID(int(lastId))
+	return nil, 1
 }
 
 func DeleteCategory(id int) error {

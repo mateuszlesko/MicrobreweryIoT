@@ -32,7 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	cgh := handlers.NewCategory(l, &pgsql)
+	cgh := handlers.NewCategory(l)
 	ih := handlers.NewIngredient(l)
 
 	smux := mux.NewRouter()
