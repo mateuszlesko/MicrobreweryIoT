@@ -1,7 +1,6 @@
 package data
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io"
 
@@ -63,9 +62,6 @@ func SelectCategoryWhereID(id int) (error, *Category) {
 	var category Category
 
 	if err := db.QueryRow("SELECT * FROM categories WHERE category_id=$1;", id).Scan(&category.Category_id, &category.Category_name); err != nil {
-		if err == sql.ErrNoRows {
-			return err, nil
-		}
 		return err, nil
 	}
 
@@ -73,21 +69,21 @@ func SelectCategoryWhereID(id int) (error, *Category) {
 	return nil, &category
 }
 
-func UpdateCategory(category Category) (error, *Category) {
+func UpdateCategory(category Category) (*Category, error) {
 	err, db := helpers.OpenConnection()
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	smt, err := db.Prepare(`update categories set category_name=$1 where category_id=$2`)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	if _, err := smt.Exec(category.Category_name, category.Category_id); err != nil {
-		return err, nil
+		return nil, err
 	}
 	defer smt.Close()
 	defer db.Close()
-	return nil, &category
+	return &category, nil
 }
 
 func InsertCategory(name string) (error, int) {

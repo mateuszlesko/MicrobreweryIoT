@@ -98,7 +98,7 @@ func (c *Category) UpdateCategory(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(rw, "not enable to decode json", http.StatusBadGateway)
 	}
-	err, _ = data.UpdateCategory(category)
+	_, err = data.UpdateCategory(category)
 	if err != nil {
 		http.Error(rw, "unable to update", http.StatusUnprocessableEntity)
 		return
