@@ -14,7 +14,7 @@ CREATE TABLE ingredients(
    ingredient_id INT GENERATED ALWAYS AS IDENTITY,
    ingredient_name varchar(64) NOT NULL,
    unit SI_unit NOT NULL DEFAULT 'g',
-   quantity REAL NOT NULL,
+   quantity NUMERIC NOT NULL,
    description TEXT,
    category_id INT,
    PRIMARY KEY(ingredient_id),
