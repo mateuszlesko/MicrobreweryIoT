@@ -97,7 +97,6 @@ func SelectIngredients() ([]Ingredient, error) {
 		category_name          string
 	)
 	for rows.Next() {
-		fmt.Println(rows.ColumnTypes())
 		err = rows.Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &category_id, &category_name)
 		if err != nil {
 			rows.Close()
@@ -127,11 +126,11 @@ func SelectIngredientById(id int) (*Ingredient, error) {
 		category_id   int
 		category_name string
 	)
-	fmt.Println(id)
+
 	if err := db.QueryRow("SELECT ingredients.ingredient_id,ingredients.ingredient_name,ingredients.unit,ingredients.quantity,categories.category_id,categories.category_name FROM ingredients inner join categories on ingredients.category_id = categories.category_id where ingredients.ingredient_id=$1", id).Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &category_id, &category_name); err != nil {
 		return nil, err
 	}
-	//category := &Category{category_id, category_name}
+
 	ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, "", &Category{category_id, category_name}}
 	defer db.Close()
 	return ingredient, err
@@ -142,19 +141,64 @@ func InsertIngredient(i *IngredientVM) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	//"SELECT ingredient_id,ingredient_name,unit,quantity,category_id
-	smt, err := db.Prepare(`insert into ingredients(ingredient_id,ingredient_name,unit,quantity,category_id) values($1,$2,$3,$4)`)
-	if err != nil {
-		return -1, err
-	}
-	_, err = smt.Exec(i.Ingredient_name, i.Ingredient_unit, i.Ingredient_quantity, i.Ingredient_description, i.Category_id)
-	if err != nil {
-		return -1, err
-	}
+	defer db.Close()
+
+	smt, err := db.Prepare("insert into ingredients(ingredient_name,unit,quantity,category_id) values($1,$2,$3,$4)")
 	if err != nil {
 		return -1, err
 	}
 	defer smt.Close()
-	defer db.Close()
+
+	_, err = smt.Exec(i.Ingredient_name, i.Ingredient_unit, i.Ingredient_quantity, i.Category_id)
+	if err != nil {
+		return -1, err
+	}
 	return 1, nil
+}
+
+func UpdateIngredient(i *IngredientVM) error {
+	err, db := helpers.OpenConnection()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	smt, err := db.Prepare("update ingredients set ingredient_name=$1,unit=$2,quantity=CAST($3 AS NUMERIC),category_id=$4 where ingredient_id=$5")
+
+	if err != nil {
+		fmt.Println("prepare err")
+		return err
+	}
+
+	defer smt.Close()
+
+	if _, err := smt.Exec(i.Ingredient_name, i.Ingredient_unit, i.Ingredient_quantity, i.Category_id, i.Ingredient_id); err != nil {
+		fmt.Println("exec error", i.Ingredient_quantity)
+		return err
+	}
+
+	return nil
+}
+
+func DeleteIngredient(id int) error {
+	_, err := SelectIngredientById(id)
+	if err != nil {
+		return err
+	}
+	err, db := helpers.OpenConnection()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	smt, err := db.Prepare(`delete from ingredients where ingredient_id=$1`)
+
+	if err != nil {
+		return err
+	}
+	defer smt.Close()
+
+	if _, err := smt.Exec(id); err != nil {
+		return err
+	}
+	return nil
 }

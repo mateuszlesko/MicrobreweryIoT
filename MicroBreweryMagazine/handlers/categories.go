@@ -41,12 +41,12 @@ func (c *Category) GetCategories(rw http.ResponseWriter, r *http.Request) {
 func (c *Category) GetCategory(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(rw, "unable to encode json", http.StatusBadRequest)
+	if err != nil && id != 0 {
+		http.Error(rw, "unable to decode value", http.StatusBadRequest)
 		return
 	}
 	var category *data.Category
-	err, category = data.SelectCategoryWhereID(id)
+	category, err = data.SelectCategoryWhereID(id)
 	if err != nil {
 		c.l.Panic(err)
 	}
@@ -67,7 +67,7 @@ func (c *Category) DeleteCategory(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "unable to decode json", http.StatusBadRequest)
 		return
 	}
-	err, _ = data.SelectCategoryWhereID(id)
+	_, err = data.SelectCategoryWhereID(id)
 	if err != nil {
 		http.Error(rw, "no object corresponds in db", http.StatusBadRequest)
 		return
@@ -88,7 +88,7 @@ func (c *Category) UpdateCategory(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "unable to decode json", http.StatusBadRequest)
 		return
 	}
-	err, _ = data.SelectCategoryWhereID(id)
+	_, err = data.SelectCategoryWhereID(id)
 	if err != nil {
 		http.Error(rw, "no object corresponds in db", http.StatusBadGateway)
 		return
@@ -119,7 +119,7 @@ func (c Category) PostCategory(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "can not decode value from body", http.StatusBadRequest)
 		return
 	}
-	err, res := data.InsertCategory(category.Category_name)
+	err = data.InsertCategory(category.Category_name)
 	if err != nil {
 		http.Error(rw, "can not add row", http.StatusBadRequest)
 		return
@@ -129,5 +129,5 @@ func (c Category) PostCategory(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rw.Header().Set("Content-Type", "application/json")
-	rw.Write([]byte(fmt.Sprintf("%d", res)))
+	rw.Write([]byte(fmt.Sprintf("%d", 1)))
 }

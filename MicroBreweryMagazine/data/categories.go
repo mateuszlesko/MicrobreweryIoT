@@ -54,19 +54,19 @@ func SelectCategories() ([]Category, error) {
 	return categories, nil
 }
 
-func SelectCategoryWhereID(id int) (error, *Category) {
+func SelectCategoryWhereID(id int) (*Category, error) {
 	err, db := helpers.OpenConnection()
+	defer db.Close()
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	var category Category
 
 	if err := db.QueryRow("SELECT * FROM categories WHERE category_id=$1;", id).Scan(&category.Category_id, &category.Category_name); err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	defer db.Close()
-	return nil, &category
+	return &category, nil
 }
 
 func UpdateCategory(category Category) (*Category, error) {
@@ -86,29 +86,30 @@ func UpdateCategory(category Category) (*Category, error) {
 	return &category, nil
 }
 
-func InsertCategory(name string) (error, int) {
+func InsertCategory(name string) error {
 	err, db := helpers.OpenConnection()
 	if err != nil {
-		return err, -1
+		return err
 	}
 	smt, err := db.Prepare(`insert into categories(category_name) values($1)`)
 	if err != nil {
-		return err, -1
+		return err
 	}
 	_, err = smt.Exec(name)
 	if err != nil {
-		return err, -1
+		return err
 	}
 	if err != nil {
-		return err, -1
+		return err
 	}
 	defer smt.Close()
 	defer db.Close()
-	return nil, 1
+	return nil
 }
 
 func DeleteCategory(id int) error {
 	err, db := helpers.OpenConnection()
+	defer db.Close()
 	if err != nil {
 		return err
 	}
@@ -116,11 +117,13 @@ func DeleteCategory(id int) error {
 	if err != nil {
 		return err
 	}
+	defer smt.Close()
+	if err != nil {
+		return err
+	}
 	if _, err := smt.Exec(id); err != nil {
 		return err
 	}
-	defer smt.Close()
-	defer db.Close()
 
 	return nil
 }

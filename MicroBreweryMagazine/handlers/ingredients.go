@@ -66,16 +66,40 @@ func (i *Ingredient) AddIngredient(rw http.ResponseWriter, r *http.Request) {
 
 //put
 func (i *Ingredient) UpdateIngredient(rw http.ResponseWriter, r *http.Request) {
-	//vars := mux.Vars(r)
-	//id, err := strconv.Atoi(vars["id"])
 
-	//ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
+	d := r.Context().Value(KeyIngredient{}).(data.IngredientVM)
+	err := data.UpdateIngredient(&d)
+	if err != nil {
+		http.Error(rw, "unable to update", http.StatusBadRequest)
+	}
 
+	ingredientDb, err := data.SelectIngredientById(d.Ingredient_id)
+
+	if err != nil {
+		http.Error(rw, "unable to get updated data", http.StatusBadRequest)
+
+	}
+
+	ingredientsBytes, err := json.MarshalIndent(ingredientDb, "", "\t")
+
+	if err != nil {
+		http.Error(rw, "unable to encode data", http.StatusBadRequest)
+	}
+	rw.Write(ingredientsBytes)
 }
 
 //delete
 func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
-
+	d := mux.Vars(r)
+	id, err := strconv.Atoi(d["id"])
+	if err != nil && id != 0 {
+		http.Error(rw, "unable to get id", http.StatusBadRequest)
+	}
+	err = data.DeleteIngredient(id)
+	if err != nil {
+		http.Error(rw, "unable to delete", http.StatusBadRequest)
+	}
+	rw.Header().Set("Content-Type", "application/json")
 }
 
 func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Handler {
