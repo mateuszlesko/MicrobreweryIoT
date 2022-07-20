@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -23,69 +24,88 @@ func NewIngredient(l *log.Logger) *Ingredient {
 
 //get
 func (i *Ingredient) GetIngredients(rw http.ResponseWriter, r *http.Request) {
-	li := data.GetIngredients()
-	err := li.ToJSON(rw)
+	il, err := data.SelectIngredients()
 	if err != nil {
-		http.Error(rw, "unable to encode json", http.StatusInternalServerError)
+		http.Error(rw, "unable to get data", http.StatusBadRequest)
 	}
+	ingredientsBytes, err := json.MarshalIndent(il, "", "\t")
+	if err != nil {
+		http.Error(rw, "unable to encode json", http.StatusBadRequest)
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(ingredientsBytes)
 }
 
 func (i *Ingredient) GetIngredient(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(rw, "unable to do operation", http.StatusBadRequest)
+		http.Error(rw, "unable to encode json", http.StatusBadRequest)
 	}
-	ingredient, _, _ := data.FindIngredient(id)
-	err = ingredient.ToJSON(rw)
+	ingredient, err := data.SelectIngredientById(id)
 	if err != nil {
-		http.Error(rw, "unable to do operation", http.StatusBadRequest)
+		http.Error(rw, "0 record", http.StatusBadRequest)
 	}
+	ingredientsBytes, err := json.MarshalIndent(ingredient, "", "\t")
+	if err != nil {
+		http.Error(rw, "unable to encode json", http.StatusBadRequest)
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(ingredientsBytes)
 }
 
 //post
 func (i *Ingredient) AddIngredient(rw http.ResponseWriter, r *http.Request) {
-	ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
-	data.AddIngredient(&ingredient)
+	ingredient := r.Context().Value(KeyIngredient{}).(data.IngredientVM)
+	_, err := data.InsertIngredient(&ingredient)
+	if err != nil {
+		http.Error(rw, "Unable to add", http.StatusBadRequest)
+	}
+	rw.Header().Set("Content-Type", "application/json")
 }
 
 //put
 func (i *Ingredient) UpdateIngredient(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
 
+	d := r.Context().Value(KeyIngredient{}).(data.IngredientVM)
+	err := data.UpdateIngredient(&d)
 	if err != nil {
-		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+		http.Error(rw, "unable to update", http.StatusBadRequest)
 	}
 
-	ingredient := r.Context().Value(KeyIngredient{}).(data.Ingredient)
+	ingredientDb, err := data.SelectIngredientById(d.Ingredient_id)
 
 	if err != nil {
-		http.Error(rw, "unable to unmarshal json", http.StatusBadRequest)
+		http.Error(rw, "unable to get updated data", http.StatusBadRequest)
+
 	}
-	err = data.UpdateIngredient(id, &ingredient)
+
+	ingredientsBytes, err := json.MarshalIndent(ingredientDb, "", "\t")
+
 	if err != nil {
-		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+		http.Error(rw, "unable to encode data", http.StatusBadRequest)
 	}
+	rw.Write(ingredientsBytes)
 }
 
 //delete
 func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(rw, "unable to do this operation", http.StatusBadRequest)
+	d := mux.Vars(r)
+	id, err := strconv.Atoi(d["id"])
+	if err != nil && id != 0 {
+		http.Error(rw, "unable to get id", http.StatusBadRequest)
 	}
-	err = data.RemoveIngredient(id)
+	err = data.DeleteIngredient(id)
 	if err != nil {
-		http.Error(rw, "unabable to do this operation", http.StatusBadRequest)
+		http.Error(rw, "unable to delete", http.StatusBadRequest)
 	}
+	rw.Header().Set("Content-Type", "application/json")
 }
 
 func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 
-		ingredient := data.Ingredient{}
+		ingredient := data.IngredientVM{}
 		err := ingredient.FromJSON(r.Body)
 
 		if err != nil {
