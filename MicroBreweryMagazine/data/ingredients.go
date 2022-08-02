@@ -4,18 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/mateuszlesko/MicroBreweryIoT/MicroBreweryMagazine2/helpers"
 )
 
 type Ingredient struct {
-	Ingredient_Id   int       `json:"id"`
-	Ingredient_Name string    `json:"name" validate:"required"`
-	Unit            string    `json:"unit" validate:"required,unit"`
-	Quantity        float32   `json:"quantity" validate:"required"`
-	Description     string    `json:"desc"`
-	Category        *Category `json:"category"`
+	Ingredient_Id   int                 `json:"id"`
+	Ingredient_Name string              `json:"name" validate:"required"`
+	Unit            string              `json:"unit" validate:"required,unit"`
+	Quantity        float32             `json:"quantity" validate:"required"`
+	CreatedAt       time.Time           `json:"created_at"`
+	Category        *IngredientCategory `json:"category"`
 }
 
 type IngredientVM struct {
@@ -81,30 +82,31 @@ func SelectIngredients() ([]Ingredient, error) {
 	}
 	defer db.Close()
 	//rows, err := db.Query("SELECT ingredients.ingredient_id,ingredients.ingredient_name,ingredients.unit,ingredients.quantity,ingredients.description FROM ingredients inner join categories on ingredients.category_id = categories.category_id;")
-	rows, err := db.Query("SELECT ingredients.ingredient_id,ingredients.ingredient_name,ingredients.unit,ingredients.quantity,categories.category_id,categories.category_name FROM ingredients inner join categories on ingredients.category_id = categories.category_id;")
+	rows, err := db.Query("select id, ingredient_name, unit, quantity,created_at from ingredient;")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	il := []Ingredient{}
 	var (
-		ingredient_id          int
-		ingredient_name        string
-		ingredient_unit        string
-		ingredient_quantity    float32
-		ingredient_description string
-		category_id            int
-		category_name          string
+		ingredient_id         int
+		ingredient_name       string
+		ingredient_unit       string
+		ingredient_quantity   float32
+		ingredient_created_at time.Time
+		category_id           int
+		category_name         string
 	)
 	for rows.Next() {
-		err = rows.Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &category_id, &category_name)
+		err = rows.Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &ingredient_created_at)
 		if err != nil {
 			rows.Close()
 			db.Close()
 			return nil, err
 		}
-		category := &Category{category_id, category_name}
-		ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, ingredient_description, category}
+		category := CreateIngredientCategory(category_id, category_name)
+		//category := &IngredientCategory{category_id, category_name}
+		ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, ingredient_created_at, category}
 		il = append(il, *ingredient)
 	}
 
@@ -118,20 +120,20 @@ func SelectIngredientById(id int) (*Ingredient, error) {
 	}
 
 	var (
-		ingredient_id       int
-		ingredient_name     string
-		ingredient_unit     string
-		ingredient_quantity float32
-		//ingredient_description string
-		category_id   int
-		category_name string
+		ingredient_id         int
+		ingredient_name       string
+		ingredient_unit       string
+		ingredient_quantity   float32
+		ingredient_created_at time.Time
+		category_id           int
+		category_name         string
 	)
 
-	if err := db.QueryRow("SELECT ingredients.ingredient_id,ingredients.ingredient_name,ingredients.unit,ingredients.quantity,categories.category_id,categories.category_name FROM ingredients inner join categories on ingredients.category_id = categories.category_id where ingredients.ingredient_id=$1", id).Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &category_id, &category_name); err != nil {
+	if err := db.QueryRow("SELECT ingredient.id,ingredient.ingredient_name,ingredient.unit,ingredient.quantity,ingredient.created_at,ingredient_category.id,ingredient_category.category_name FROM ingredient inner join ingredient_category on ingredient.ingredient_category_id = ingredient_category.id where ingredient.id=$1;", id).Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &ingredient_created_at, &category_id, &category_name); err != nil {
 		return nil, err
 	}
 
-	ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, "", &Category{category_id, category_name}}
+	ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, time.Now(), CreateIngredientCategory(category_id, category_name)}
 	defer db.Close()
 	return ingredient, err
 }
@@ -143,7 +145,7 @@ func InsertIngredient(i *IngredientVM) (int, error) {
 	}
 	defer db.Close()
 
-	smt, err := db.Prepare("insert into ingredients(ingredient_name,unit,quantity,category_id) values($1,$2,$3,$4)")
+	smt, err := db.Prepare("insert into ingredient(ingredient_name,unit,quantity,category_id,created_at) values($1,$2,$3,$4,NOW());")
 	if err != nil {
 		return -1, err
 	}
@@ -163,7 +165,7 @@ func UpdateIngredient(i *IngredientVM) error {
 	}
 	defer db.Close()
 
-	smt, err := db.Prepare("update ingredients set ingredient_name=$1,unit=$2,quantity=CAST($3 AS NUMERIC),category_id=$4 where ingredient_id=$5")
+	smt, err := db.Prepare("update ingredient set ingredient_name=$1,unit=$2,quantity=CAST($3 AS NUMERIC),category_id=$4 where id=$5")
 
 	if err != nil {
 		fmt.Println("prepare err")
@@ -190,7 +192,7 @@ func DeleteIngredient(id int) error {
 		return err
 	}
 	defer db.Close()
-	smt, err := db.Prepare(`delete from ingredients where ingredient_id=$1`)
+	smt, err := db.Prepare(`delete from ingredient where id=$1;`)
 
 	if err != nil {
 		return err

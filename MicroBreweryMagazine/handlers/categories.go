@@ -45,7 +45,7 @@ func (c *Category) GetCategory(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "unable to decode value", http.StatusBadRequest)
 		return
 	}
-	var category *data.Category
+	var category *data.IngredientCategory
 	category, err = data.SelectCategoryWhereID(id)
 	if err != nil {
 		c.l.Panic(err)
@@ -93,7 +93,7 @@ func (c *Category) UpdateCategory(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "no object corresponds in db", http.StatusBadGateway)
 		return
 	}
-	category := data.Category{}
+	category := data.IngredientCategory{}
 	err = json.NewDecoder(r.Body).Decode(&category)
 	if err != nil {
 		http.Error(rw, "not enable to decode json", http.StatusBadGateway)
@@ -113,7 +113,7 @@ func (c *Category) UpdateCategory(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (c Category) PostCategory(rw http.ResponseWriter, r *http.Request) {
-	var category data.Category
+	var category data.IngredientCategory
 	err := json.NewDecoder(r.Body).Decode(&category)
 	if err != nil {
 		http.Error(rw, "can not decode value from body", http.StatusBadRequest)
