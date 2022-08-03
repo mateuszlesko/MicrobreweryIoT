@@ -133,7 +133,7 @@ func SelectIngredientById(id int) (*Ingredient, error) {
 		return nil, err
 	}
 
-	ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, time.Now(), CreateIngredientCategory(category_id, category_name)}
+	ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, ingredient_created_at, CreateIngredientCategory(category_id, category_name)}
 	defer db.Close()
 	return ingredient, err
 }
