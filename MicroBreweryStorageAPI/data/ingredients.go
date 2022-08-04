@@ -204,3 +204,17 @@ func DeleteIngredient(id int) error {
 	}
 	return nil
 }
+
+func CheckStock(id int, needStock float32, unit string) (int, error) {
+	err, db := helpers.OpenConnection()
+	if err != nil {
+		return 0, err
+	}
+	defer db.Close()
+	var res int
+
+	if err := db.QueryRow("Select CASE WHEN quantity > $1 and unit = $2 THEN 1 ELSE 0 END AS res from ingredient where id = $3;", needStock, unit, id).Scan(&res); err != nil {
+		return 0, err
+	}
+	return res, nil
+}

@@ -43,6 +43,7 @@ func main() {
 
 	getIngredient.HandleFunc("/ingredients/", ih.GetIngredients)
 	getIngredient.HandleFunc("/ingredients/{id:[0-9]+}", ih.GetIngredient)
+	getIngredient.HandleFunc("/ingredients/checkstock/", ih.CheckStock)
 
 	postIngredient.HandleFunc("/ingredients/", ih.AddIngredient)
 	postIngredient.Use(ih.MiddlewareIngredientValidation)

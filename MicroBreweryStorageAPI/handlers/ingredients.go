@@ -92,7 +92,7 @@ func (i *Ingredient) UpdateIngredient(rw http.ResponseWriter, r *http.Request) {
 func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
 	d := mux.Vars(r)
 	id, err := strconv.Atoi(d["id"])
-	if err != nil && id != 0 {
+	if err != nil && id == 0 {
 		http.Error(rw, "unable to get id", http.StatusBadRequest)
 	}
 	err = data.DeleteIngredient(id)
@@ -102,6 +102,26 @@ func (i *Ingredient) DeleteIngredient(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 }
 
+func (i *Ingredient) CheckStock(rw http.ResponseWriter, r *http.Request) {
+	//d := mux.Vars(r)
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil && id == 0 {
+		http.Error(rw, "unable to get id", http.StatusBadRequest)
+	}
+	quantity, err := strconv.ParseFloat(r.URL.Query().Get("quanity"), 32)
+	if err != nil && quantity <= 0.0 {
+		http.Error(rw, "unable to get quantity", http.StatusBadRequest)
+	}
+	unit := r.URL.Query().Get("unit")
+	if unit == "" {
+		http.Error(rw, "unable to get unit", http.StatusBadRequest)
+	}
+
+	result, err := data.CheckStock(id, float32(quantity), unit)
+	rw.Write([]byte(fmt.Sprintf("%d", result)))
+}
+
+//middleware
 func (i *Ingredient) MiddlewareIngredientValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 
