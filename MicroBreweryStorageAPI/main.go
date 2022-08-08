@@ -31,6 +31,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	pgsql.Close()
 
 	cgh := handlers.NewCategory(l)
 	ih := handlers.NewIngredient(l)
@@ -79,7 +80,7 @@ func main() {
 		},
 		ErrorLog: l,
 	}
-	defer pgsql.Close()
+
 	//async doing serve http server
 	go func() {
 		err := s.ListenAndServe()

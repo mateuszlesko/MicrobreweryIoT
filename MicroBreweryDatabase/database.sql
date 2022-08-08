@@ -24,6 +24,8 @@ CREATE TABLE "recipe_category" (
 CREATE TABLE "recipe" (
   "id" SERIAL PRIMARY KEY,
   "name" varchar,
+  "ibu" numeric,
+  "density" numeric,
   "created_at" timestamp,
   "recipe_category_id" int
 );
@@ -38,8 +40,9 @@ CREATE TABLE "recipe_ingredient_list" (
 
 CREATE TABLE "mash_stage" (
   "id" SERIAL PRIMARY KEY,
-  "stage_time" timestamp,
+  "stage_time" int,
   "temperature" int,
+  "pump_work" boolean,
   "created_at" timestamp,
   "recipe_id" int
 );
