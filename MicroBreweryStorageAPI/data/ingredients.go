@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -20,12 +21,11 @@ type Ingredient struct {
 }
 
 type IngredientVM struct {
-	Ingredient_id          int     `json:"id"`
-	Ingredient_name        string  `json:"name" validate:"required"`
-	Ingredient_unit        string  `json:"unit" validate:"required,unit"`
-	Ingredient_quantity    float32 `json:"quantity" validate:"required"`
-	Ingredient_description string  `json:"desc"`
-	Category_id            int     `json:"category"`
+	Ingredient_id       int     `json:"id"`
+	Ingredient_name     string  `json:"name" validate:"required"`
+	Ingredient_unit     string  `json:"unit" validate:"required,unit"`
+	Ingredient_quantity float32 `json:"quantity" validate:"required"`
+	Category_id         int     `json:"category"`
 }
 
 var NotFoundError = fmt.Errorf("NOT FOUND RESOURCE")
@@ -81,8 +81,7 @@ func SelectIngredients() ([]Ingredient, error) {
 		return nil, err
 	}
 	defer db.Close()
-	//rows, err := db.Query("SELECT ingredients.ingredient_id,ingredients.ingredient_name,ingredients.unit,ingredients.quantity,ingredients.description FROM ingredients inner join categories on ingredients.category_id = categories.category_id;")
-	rows, err := db.Query("select id, ingredient_name, unit, quantity,created_at from ingredient;")
+	rows, err := db.Query("select ingredient.id,ingredient.ingredient_name,ingredient.unit,ingredient.quantity, ingredient.created_at,ingredient_category.id,ingredient_category.category_name,ingredient_category.created_at from ingredient left join ingredient_category on ingredient.ingredient_category_id = ingredient_category.id;")
 	if err != nil {
 		return nil, err
 	}
@@ -96,17 +95,17 @@ func SelectIngredients() ([]Ingredient, error) {
 		ingredient_created_at time.Time
 		category_id           int
 		category_name         string
+		category_created_at   time.Time
 	)
 	for rows.Next() {
-		err = rows.Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &ingredient_created_at)
+		err = rows.Scan(&ingredient_id, &ingredient_name, &ingredient_unit, &ingredient_quantity, &ingredient_created_at, &category_id, &category_name, &category_created_at)
 		if err != nil {
+			log.Panic()
 			rows.Close()
 			db.Close()
 			return nil, err
 		}
-		category := CreateIngredientCategory(category_id, category_name)
-		//category := &IngredientCategory{category_id, category_name}
-		ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, ingredient_created_at, category}
+		ingredient := &Ingredient{ingredient_id, ingredient_name, ingredient_unit, ingredient_quantity, ingredient_created_at, &IngredientCategory{Category_id: category_id, Category_name: category_name, Category_created_at: category_created_at}}
 		il = append(il, *ingredient)
 	}
 
@@ -144,9 +143,9 @@ func InsertIngredient(i *IngredientVM) (int, error) {
 		return -1, err
 	}
 	defer db.Close()
-
-	smt, err := db.Prepare("insert into ingredient(ingredient_name,unit,quantity,category_id,created_at) values($1,$2,$3,$4,NOW());")
+	smt, err := db.Prepare("insert into ingredient(ingredient_name,unit,quantity,ingredient_category_id,created_at) values($1,$2,$3,$4,NOW());")
 	if err != nil {
+		log.Panic()
 		return -1, err
 	}
 	defer smt.Close()
