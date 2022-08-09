@@ -59,11 +59,11 @@ func main() {
 	postCategory := smux.Methods(http.MethodPost).Subrouter()
 	deleteCategory := smux.Methods(http.MethodDelete).Subrouter()
 
-	getCategory.HandleFunc("/categories/", cgh.GetCategories)
-	getCategory.HandleFunc("/category/{id:[0-9]+}", cgh.GetCategory)
-	postCategory.HandleFunc("/category/", cgh.PostCategory)
-	putCategory.HandleFunc("/category/{id:[0-9]+}", cgh.UpdateCategory)
-	deleteCategory.HandleFunc("/category/{id:[0-9]+}", cgh.DeleteCategory)
+	getCategory.HandleFunc("/ingredientcategories/", cgh.GetCategories)
+	getCategory.HandleFunc("/ingredientcategories/{id:[0-9]+}", cgh.GetCategory)
+	postCategory.HandleFunc("/ingredientcategories/", cgh.PostCategory)
+	putCategory.HandleFunc("/ingredientcategories/{id:[0-9]+}", cgh.UpdateCategory)
+	deleteCategory.HandleFunc("/ingredientcategories/{id:[0-9]+}", cgh.DeleteCategory)
 	fmt.Println("Server is listening on :6660")
 
 	s := &http.Server{

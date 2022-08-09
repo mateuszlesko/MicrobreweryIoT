@@ -57,6 +57,7 @@ func (i *Ingredient) GetIngredient(rw http.ResponseWriter, r *http.Request) {
 //post
 func (i *Ingredient) AddIngredient(rw http.ResponseWriter, r *http.Request) {
 	ingredient := r.Context().Value(KeyIngredient{}).(data.IngredientVM)
+	fmt.Println("%d", ingredient.Category_id)
 	_, err := data.InsertIngredient(&ingredient)
 	if err != nil {
 		http.Error(rw, "Unable to add", http.StatusBadRequest)
