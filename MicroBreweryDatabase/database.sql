@@ -2,13 +2,13 @@ CREATE TYPE SI_unit as ENUM('mg','g','dag','kg','t');
 
 CREATE TABLE "ingredient_category" (
   "id" SERIAL PRIMARY KEY,
-  "name" varchar,
+  "category_name" varchar,
   "created_at" timestamp
 );
 
 CREATE TABLE "ingredient" (
   "id" SERIAL PRIMARY KEY,
-  "name" varchar(32),
+  "ingredient_name" varchar(32),
   "unit" SI_unit NOT NULL DEFAULT 'g',
   "quantity" numeric,
   "created_at" timestamp,
@@ -81,6 +81,7 @@ insert into ingredient_category (category_name,created_at) values('',NOW());
 insert into ingredient_category (category_name,created_at) values('chmiel',NOW());
 insert into ingredient_category (category_name,created_at) values('drożdż',NOW());
 -- TABLE ingredient
+insert into ingredient (ingredient_name,unit,quantity,created_at,ingredient_category_id) values('Chmiel #1','g',0,NOW(),1);
 insert into ingredient (ingredient_name,unit,quantity,created_at,ingredient_category_id) values('Chmiel cytrusowy','kg',125,NOW(),2);
 insert into ingredient (ingredient_name,unit,quantity,created_at,ingredient_category_id) values('Drożdże','kg',125,NOW(),3);
 -- TABLE recipe category:
